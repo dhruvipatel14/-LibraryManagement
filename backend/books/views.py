@@ -5,11 +5,15 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.permissions import CanModifyBooks, SafeJWTAuthentication
 from books.models import Books
 from books.serializers import BookSerializer
 
 
 class BookView(APIView):
+    authentication_classes = [SafeJWTAuthentication]
+    permission_classes = [CanModifyBooks]
+
     @staticmethod
     @swagger_auto_schema(
         operation_description="Fetch all the books",

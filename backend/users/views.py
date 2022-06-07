@@ -1,13 +1,40 @@
+import time
+
 import bcrypt
+from django.conf import settings
 from django.core.exceptions import BadRequest
 from drf_yasg.utils import swagger_auto_schema
+from jwcrypto import jwk, jwt
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.models import Roles, Users
+from users.models import Users
 from users.serializers import UserSerializer, LoginSerializer
+
+key = jwk.JWK(**settings.SECRET_KEY_JWT)
+
+
+def generate_token(user):
+    access_token = jwt.JWT(header={"alg": settings.JWT_ALG},
+                           claims={"email": user.email, "login_time": time.time(),
+                                   "role": user.role
+                                   },
+                           default_claims={
+                               "exp": round(time.time()) + settings.ACCESS_VALID_SECONDS})
+
+    access_token.make_signed_token(key)
+
+    access_token = access_token.serialize()
+
+    encrypted_access_token = jwt.JWT(header=settings.ENCRYPT_ALG_DATA, claims=access_token)
+
+    encrypted_access_token.make_encrypted_token(key)
+
+    encrypted_access_token = encrypted_access_token.serialize()
+
+    return {"access_token": encrypted_access_token}
 
 
 def create_hash_password(password):
@@ -37,12 +64,10 @@ class UserView(APIView):
     def post(request):
         try:
             check_user_exist(request)
-
             serializer = UserSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.validated_data.update({
-                    "password": create_hash_password(request.data["password"]),
-                    "role": Roles.ADMIN.value
+                    "password": create_hash_password(request.data["password"])
                 })
                 serializer.save()
 
@@ -73,7 +98,7 @@ class Login(APIView):
                 user = Users.objects.get(email=request.data["email"])
 
                 if check_password(request.data["password"], user.password):
-                    return Response("User authenticated successfully.", status.HTTP_200_OK)
+                    return Response(generate_token(user), status.HTTP_200_OK)
                 else:
                     raise AuthenticationFailed(detail="Incorrect Credentials.", code=2401)
             else:

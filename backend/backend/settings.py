@@ -138,3 +138,21 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     )
 }
+
+SECRET_KEY_JWT = {"k": "Wal4ZHCBsml0Al_Y8faoNTKsXCkw8eefKXYFuwTBOpA", "kty": "oct"}
+ACCESS_VALID_SECONDS = 86400
+JWT_ALG = "HS256"
+ENCRYPT_ALG_DATA = {"alg": "A256KW", "enc": "A256CBC-HS512"}
+
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'Basic': {
+            'type': 'basic'
+      },
+      'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+      }
+   }
+}
